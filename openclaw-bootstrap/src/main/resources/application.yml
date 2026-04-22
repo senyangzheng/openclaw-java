@@ -1,0 +1,140 @@
+spring:
+  application:
+    name: openclaw-java
+  profiles:
+    default: dev
+  threads:
+    virtual:
+      enabled: true
+
+  #
+  # Persistence. Activated lazily when openclaw.sessions.store=jdbc.
+  # When store=memory (the default), DataSourceAutoConfiguration still runs and
+  # will fail if spring.datasource.url is unresolved — keep url defaulted to an
+  # in-memory sentinel and also set spring.autoconfigure.exclude in -memory mode,
+  # see application-dev.yml / application-prod.yml.
+  #
+  datasource:
+    url: ${OPENCLAW_DB_URL:jdbc:mysql://localhost:3306/openclaw?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true}
+    username: ${OPENCLAW_DB_USERNAME:root}
+    password: ${OPENCLAW_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: openclaw-hikari
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 10000
+  flyway:
+    enabled: ${OPENCLAW_FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    # Set to org.apache.ibatis.logging.slf4j.Slf4jImpl to echo SQL via SLF4J.
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: AUTO
+
+server:
+  port: ${OPENCLAW_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+
+openclaw:
+  profile: default
+  node-name: ${OPENCLAW_NODE_NAME:claw-local}
+  startup-timeout: 30s
+  cli:
+    enabled: false
+  #
+  # M2.4 plugin runtime.
+  #   enabled=true (default) → loader scans META-INF/services/... on every start.
+  #   include=[...]          → allow-list of plugin ids (empty = load all).
+  #   exclude=[...]          → deny-list; wins over include.
+  #   fail-fast=false        → broken plugin logs a WARN but never crashes the app.
+  # The built-in "hello" demo plugin lives in openclaw-plugins and registers a bean
+  # under name `plugin.hello.greeter` at boot. Disable via exclude=[hello].
+  #
+  plugins:
+    enabled: ${OPENCLAW_PLUGINS_ENABLED:true}
+    include: []
+    exclude: []
+    fail-fast: false
+  #
+  # M2.4 config hot reload. Self-rolled (no spring-cloud) WatchService-based
+  # dispatcher: listed files are monitored; on change, every HotReloadable bean
+  # receives a ConfigChangeEvent. Consumers MUST be idempotent — debounce only
+  # collapses bursts, not repeat edits.
+  #
+  config:
+    hot-reload:
+      enabled: ${OPENCLAW_HOT_RELOAD_ENABLED:false}
+      paths: []
+      debounce: 500ms
+  gateway:
+    # Empty token = permissive mode (M1 only). Set in prod to enforce MockAuthGuard.
+    auth-token: ${OPENCLAW_GATEWAY_TOKEN:}
+  sessions:
+    # memory | jdbc — when jdbc, ensure spring.datasource.* + spring.flyway.enabled=true.
+    store: ${OPENCLAW_SESSIONS_STORE:memory}
+  secrets:
+    # memory | jdbc — when jdbc, MyBatis-Plus + DataSource must be on the classpath
+    # AND openclaw.secrets.crypto.kek-base64 must be set (32 random bytes, Base64).
+    store: ${OPENCLAW_SECRETS_STORE:memory}
+    crypto:
+      # Generate once per deployment with:
+      #   openssl rand -base64 32
+      # Rotating the KEK requires re-encrypting every row in oc_auth_profile.
+      kek-base64: ${OPENCLAW_SECRETS_CRYPTO_KEK_BASE64:}
+  providers:
+    qwen:
+      # SECURITY: NEVER hard-code api-key here — the file is committed to git.
+      # Export env vars at runtime instead:
+      #   export OPENCLAW_QWEN_ENABLED=true
+      #   export DASHSCOPE_API_KEY=sk-xxxxxxxx
+      # Disabled by default → pipeline falls back to EchoMockProviderClient.
+      enabled: ${OPENCLAW_QWEN_ENABLED:false}
+      api-key: ${DASHSCOPE_API_KEY:}
+      base-url: ${OPENCLAW_QWEN_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+      default-model: ${OPENCLAW_QWEN_MODEL:qwen-turbo}
+      timeout: 60s
+    google:
+      # SECURITY: same contract as Qwen — api-key MUST come from env / secrets vault.
+      #   export OPENCLAW_GOOGLE_ENABLED=true
+      #   export GEMINI_API_KEY=...
+      enabled: ${OPENCLAW_GOOGLE_ENABLED:false}
+      api-key: ${GEMINI_API_KEY:}
+      base-url: ${OPENCLAW_GOOGLE_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
+      default-model: ${OPENCLAW_GOOGLE_MODEL:gemini-1.5-flash}
+      timeout: 60s
+    registry:
+      # Preferred fallback order when multiple providers are enabled. Providers
+      # present at runtime but not listed here are appended alphabetically.
+      order:
+        - google
+        - qwen
+      primary: true
+      cooldown:
+        initial-delay: 5s
+        max-delay: 5m
+        multiplier: 2.0
+
+logging:
+  level:
+    root: INFO
+    com.openclaw: INFO
+    org.springframework: WARN

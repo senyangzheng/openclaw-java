@@ -1,0 +1,17 @@
+openclaw:
+  profile: dev
+  node-name: claw-dev
+  sessions:
+    # dev defaults to JDBC — pair with a local MySQL 8.x.
+    # Override to `memory` if you don't have MySQL available:
+    #   export OPENCLAW_SESSIONS_STORE=memory
+    store: ${OPENCLAW_SESSIONS_STORE:jdbc}
+
+spring:
+  flyway:
+    enabled: ${OPENCLAW_FLYWAY_ENABLED:true}
+
+logging:
+  level:
+    com.openclaw: DEBUG
+    org.springframework.web: INFO

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.openclaw</groupId>
+    <artifactId>openclaw-java-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>openclaw-plugin-sdk</artifactId>
+  <name>openclaw-plugin-sdk</name>
+  <description>
+    Plugin SPI. Pure API module — plugin authors depend on this artifact only,
+    never on the loader/runtime in openclaw-plugins. Keeps plugin jars slim and
+    isolates them from our Spring wiring internals.
+  </description>
+
+  <dependencies>
+    <!--
+      spring-context (compile, provided-by-runtime) is pulled in only for
+      ConfigurableListableBeanFactory / Environment references in PluginContext.
+      We intentionally do NOT depend on spring-boot: a plugin jar should compile
+      against the smallest API surface possible.
+    -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

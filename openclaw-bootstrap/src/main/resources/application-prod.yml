@@ -1,0 +1,23 @@
+openclaw:
+  profile: prod
+  node-name: ${OPENCLAW_NODE_NAME:claw-prod}
+  sessions:
+    store: ${OPENCLAW_SESSIONS_STORE:jdbc}
+
+spring:
+  flyway:
+    enabled: ${OPENCLAW_FLYWAY_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    com.openclaw: INFO

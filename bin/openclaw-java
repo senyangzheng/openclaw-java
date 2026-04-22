@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# ----------------------------------------------------------------------------
+#  openclaw-java — CLI launcher (M1).
+#
+#  Naming contract: this script MUST be called `openclaw-java` (never plain
+#  `openclaw`) to avoid clashing with the upstream TS `openclaw` CLI. See
+#  .cursor/plan/05-translation-conventions.md §11.
+# ----------------------------------------------------------------------------
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${HERE}/.." && pwd)"
+
+JAR="${OPENCLAW_JAVA_JAR:-}"
+if [[ -z "${JAR}" ]]; then
+  JAR="$(ls "${REPO_ROOT}"/openclaw-bootstrap/target/openclaw-bootstrap-*.jar 2>/dev/null | head -n 1 || true)"
+fi
+
+if [[ -z "${JAR}" || ! -f "${JAR}" ]]; then
+  echo "openclaw-java: bootstrap jar not found." >&2
+  echo "Build first:  mvn -pl openclaw-bootstrap -am package" >&2
+  echo "Or set OPENCLAW_JAVA_JAR to the jar path." >&2
+  exit 1
+fi
+
+exec java \
+  -Dopenclaw.cli.enabled=true \
+  -Dspring.profiles.active=cli \
+  -Dspring.main.web-application-type=none \
+  -Dspring.main.banner-mode=off \
+  -Dspring.main.log-startup-info=false \
+  -Dlogging.config=classpath:logback-cli.xml \
+  -Dlogging.level.root=OFF \
+  -Dlogging.level.com.openclaw=ERROR \
+  -Dlogging.level.org.springframework=OFF \
+  -Dlogging.level.org.hibernate=OFF \
+  -Dopenclaw.sessions.store=memory \
+  -Dspring.flyway.enabled=false \
+  -Dspring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration,org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration \
+  -jar "${JAR}" "$@"

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Base logback fragment shared by openclaw modules.
+  Include in any application's logback-spring.xml:
+
+  <include resource="openclaw-logback-base.xml"/>
+-->
+<included>
+
+  <property name="openclaw.log.pattern"
+            value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-}] [%X{sessionId:-}] %logger{40} - %msg%n"/>
+
+  <appender name="OPENCLAW_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>${openclaw.log.pattern}</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="OPENCLAW_JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <includeMdcKeyName>requestId</includeMdcKeyName>
+      <includeMdcKeyName>sessionId</includeMdcKeyName>
+      <includeMdcKeyName>userId</includeMdcKeyName>
+      <includeMdcKeyName>tenantId</includeMdcKeyName>
+      <includeMdcKeyName>channel</includeMdcKeyName>
+      <includeMdcKeyName>agentId</includeMdcKeyName>
+      <includeMdcKeyName>provider</includeMdcKeyName>
+    </encoder>
+  </appender>
+
+</included>

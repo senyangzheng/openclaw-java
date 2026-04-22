@@ -1,0 +1,2 @@
+com.openclaw.secrets.OpenClawSecretsAutoConfiguration
+com.openclaw.secrets.OpenClawSecretsJdbcAutoConfiguration

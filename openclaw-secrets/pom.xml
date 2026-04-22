@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.openclaw</groupId>
+    <artifactId>openclaw-java-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>openclaw-secrets</artifactId>
+  <name>openclaw-secrets</name>
+  <description>
+    Secret resolution SPI + envelope-encrypted AuthProfileVault.
+    M0 shipped env / in-memory SecretResolvers; M2.3 adds the JDBC vault backed
+    by AES-256-GCM double encryption (KEK/DEK) — see EnvelopeCipher.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-common</artifactId>
+    </dependency>
+    <!-- AuthProfile lives in providers-api (the SPI side of the contract). -->
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-providers-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+
+    <!--
+      JDBC vault deps are optional: bootstrap (or any app wanting
+      openclaw.secrets.store=jdbc) declares them explicitly. Keeps CLI / unit-test
+      classpaths clean of DataSource auto-config. Mirrors openclaw-sessions.
+    -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-mysql</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.alibaba.fastjson2</groupId>
+      <artifactId>fastjson2</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!--
+      Integration tests (Testcontainers-MySQL) pull in the Docker-dependent
+      bits only; the optional deps above (MyBatis-Plus, mysql-connector,
+      Flyway, fastjson2) automatically leak into the test classpath because
+      they are compile-scope for the current module.
+    -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>mysql</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- *IT tests need Docker for Testcontainers; opt-out with -DskipITs=true -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

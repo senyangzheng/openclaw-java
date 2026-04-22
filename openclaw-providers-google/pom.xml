@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.openclaw</groupId>
+    <artifactId>openclaw-java-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>openclaw-providers-google</artifactId>
+  <name>openclaw-providers-google</name>
+  <description>
+    Google Gemini implementation of the ProviderClient SPI.
+    Calls generativelanguage.googleapis.com — blocking (generateContent) and
+    streaming (streamGenerateContent?alt=sse). Activated when
+    openclaw.providers.google.enabled=true and api-key is set.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-providers-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-logging</artifactId>
+    </dependency>
+    <!--
+      Same @AutoConfiguration(before = …) trick as the Qwen provider to guarantee
+      we register before the echo-mock fallback evaluates @ConditionalOnMissingBean.
+    -->
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-auto-reply</artifactId>
+    </dependency>
+    <!-- See qwen/pom.xml: vault lookup happens via ObjectProvider, optional wire. -->
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-secrets</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- RestClient (blocking) -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+    </dependency>
+    <!-- WebClient (streaming SSE) -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webflux</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor.netty</groupId>
+      <artifactId>reactor-netty-http</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.alibaba.fastjson2</groupId>
+      <artifactId>fastjson2</artifactId>
+    </dependency>
+
+    <!-- test -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

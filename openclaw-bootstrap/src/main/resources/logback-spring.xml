@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <include resource="openclaw-logback-base.xml"/>
+
+  <springProfile name="dev,test">
+    <root level="INFO">
+      <appender-ref ref="OPENCLAW_CONSOLE"/>
+    </root>
+    <logger name="com.openclaw" level="DEBUG" additivity="false">
+      <appender-ref ref="OPENCLAW_CONSOLE"/>
+    </logger>
+  </springProfile>
+
+  <springProfile name="prod">
+    <root level="INFO">
+      <appender-ref ref="OPENCLAW_JSON"/>
+    </root>
+  </springProfile>
+
+  <!--
+    CLI mode does NOT use this file. bin/openclaw-java loads logback-cli.xml via
+    -Dlogging.config so silence is enforced before Spring Environment is ready.
+  -->
+
+</configuration>

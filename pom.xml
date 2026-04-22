@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.openclaw</groupId>
+  <artifactId>openclaw-java-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>openclaw-java</name>
+  <description>openclaw Java translation - aggregator parent</description>
+
+  <!--
+    依赖与插件版本锁定参见 .cursor/plan/01-tech-stack.md §13
+    模块划分参见 .cursor/plan/02-maven-modules.md
+  -->
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Spring Boot -->
+    <spring-boot.version>3.3.4</spring-boot.version>
+
+    <!-- Persistence -->
+    <mybatis-plus.version>3.5.9</mybatis-plus.version>
+    <mysql-connector.version>9.0.0</mysql-connector.version>
+    <flyway.version>10.20.0</flyway.version>
+
+    <!-- JSON -->
+    <fastjson2.version>2.0.53</fastjson2.version>
+
+    <!-- Scheduling -->
+    <elasticjob.version>3.0.4</elasticjob.version>
+
+    <!-- API Docs -->
+    <springdoc.version>2.6.0</springdoc.version>
+    <knife4j.version>4.5.0</knife4j.version>
+
+    <!-- Browser automation -->
+    <playwright.version>1.48.0</playwright.version>
+
+    <!-- CLI / Validation / Cache / Rate limit / Security / Logging / Markdown -->
+    <picocli.version>4.7.6</picocli.version>
+    <json-schema-validator.version>1.5.2</json-schema-validator.version>
+    <caffeine.version>3.1.8</caffeine.version>
+    <bucket4j.version>8.10.1</bucket4j.version>
+    <jjwt.version>0.12.6</jjwt.version>
+    <commonmark.version>0.22.0</commonmark.version>
+    <logstash-logback.version>8.0</logstash-logback.version>
+
+    <!-- Test -->
+    <testcontainers.version>1.20.3</testcontainers.version>
+    <wiremock.version>3.9.2</wiremock.version>
+    <assertj.version>3.26.3</assertj.version>
+
+    <!-- Plugins -->
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.5.1</maven-surefire-plugin.version>
+    <maven-failsafe-plugin.version>3.5.1</maven-failsafe-plugin.version>
+    <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+    <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+  </properties>
+
+  <modules>
+    <!-- M0 -->
+    <module>openclaw-common</module>
+    <module>openclaw-logging</module>
+    <module>openclaw-config</module>
+    <module>openclaw-secrets</module>
+
+    <!-- M1 -->
+    <module>openclaw-providers-api</module>
+    <module>openclaw-providers-qwen</module>
+    <module>openclaw-providers-google</module>
+    <module>openclaw-providers-registry</module>
+    <module>openclaw-sessions</module>
+    <module>openclaw-routing</module>
+    <module>openclaw-channels-core</module>
+    <module>openclaw-auto-reply</module>
+    <module>openclaw-gateway-api</module>
+    <module>openclaw-gateway-core</module>
+    <module>openclaw-channels-web</module>
+    <module>openclaw-commands</module>
+    <module>openclaw-cli</module>
+
+    <!-- M2.4 -->
+    <module>openclaw-plugin-sdk</module>
+    <module>openclaw-plugins</module>
+
+    <!-- bootstrap is always last -->
+    <module>openclaw-bootstrap</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Spring Boot BOM -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Testcontainers BOM -->
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- ========== openclaw internal modules ========== -->
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-logging</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-config</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-secrets</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-providers-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-providers-qwen</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-providers-google</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-providers-registry</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-sessions</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-routing</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-channels-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-auto-reply</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-gateway-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-gateway-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-channels-web</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-commands</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-cli</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-plugin-sdk</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-plugins</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <!-- ========== JSON ========== -->
+      <dependency>
+        <groupId>com.alibaba.fastjson2</groupId>
+        <artifactId>fastjson2</artifactId>
+        <version>${fastjson2.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.alibaba.fastjson2</groupId>
+        <artifactId>fastjson2-extension-spring6</artifactId>
+        <version>${fastjson2.version}</version>
+      </dependency>
+
+      <!-- ========== Persistence ========== -->
+      <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        <version>${mybatis-plus.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.mysql</groupId>
+        <artifactId>mysql-connector-j</artifactId>
+        <version>${mysql-connector.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-core</artifactId>
+        <version>${flyway.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-mysql</artifactId>
+        <version>${flyway.version}</version>
+      </dependency>
+
+      <!-- ========== Scheduling ========== -->
+      <dependency>
+        <groupId>org.apache.shardingsphere.elasticjob</groupId>
+        <artifactId>elasticjob-lite-spring-boot-starter</artifactId>
+        <version>${elasticjob.version}</version>
+      </dependency>
+
+      <!-- ========== API Docs ========== -->
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>${springdoc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.xiaoymin</groupId>
+        <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+        <version>${knife4j.version}</version>
+      </dependency>
+
+      <!-- ========== Browser automation ========== -->
+      <dependency>
+        <groupId>com.microsoft.playwright</groupId>
+        <artifactId>playwright</artifactId>
+        <version>${playwright.version}</version>
+      </dependency>
+
+      <!-- ========== CLI ========== -->
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli-spring-boot-starter</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
+
+      <!-- ========== Schema / Cache / Rate limit / Security ========== -->
+      <dependency>
+        <groupId>com.networknt</groupId>
+        <artifactId>json-schema-validator</artifactId>
+        <version>${json-schema-validator.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${caffeine.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.bucket4j</groupId>
+        <artifactId>bucket4j-core</artifactId>
+        <version>${bucket4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-api</artifactId>
+        <version>${jjwt.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-impl</artifactId>
+        <version>${jjwt.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-jackson</artifactId>
+        <version>${jjwt.version}</version>
+      </dependency>
+
+      <!-- ========== Logging ========== -->
+      <dependency>
+        <groupId>net.logstash.logback</groupId>
+        <artifactId>logstash-logback-encoder</artifactId>
+        <version>${logstash-logback.version}</version>
+      </dependency>
+
+      <!-- ========== Markdown ========== -->
+      <dependency>
+        <groupId>org.commonmark</groupId>
+        <artifactId>commonmark</artifactId>
+        <version>${commonmark.version}</version>
+      </dependency>
+
+      <!-- ========== Testing ========== -->
+      <dependency>
+        <groupId>org.wiremock</groupId>
+        <artifactId>wiremock-standalone</artifactId>
+        <version>${wiremock.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
+          <configuration>
+            <release>${maven.compiler.release}</release>
+            <parameters>true</parameters>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire-plugin.version}</version>
+          <configuration>
+            <argLine>@{argLine} -Xshare:off</argLine>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${maven-failsafe-plugin.version}</version>
+          <configuration>
+            <argLine>@{argLine} -Xshare:off</argLine>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven-jar-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco-maven-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>default-prepare-agent</id>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>default-report</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>report</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>
