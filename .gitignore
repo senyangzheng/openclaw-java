@@ -12,7 +12,7 @@ buildNumber.properties
 
 # IDE
 .idea/
-.cursor/
+#.cursor/
 .github/
 *.iml
 *.iws
