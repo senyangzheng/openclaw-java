@@ -29,13 +29,17 @@
       <artifactId>openclaw-common</artifactId>
     </dependency>
     <!--
-      The built-in HelloPlugin ships a ChatCommand demo that short-circuits the
-      auto-reply pipeline. Upstream plugins that don't need chat commands can
-      exclude / replace the hello plugin via openclaw.plugins.exclude=[hello].
+      The built-in HelloPlugin registers a before_agent_start hook that
+      short-circuits the auto-reply pipeline. Plugins that don't need demo
+      commands can exclude the hello plugin via openclaw.plugins.exclude=[hello].
     -->
     <dependency>
       <groupId>com.openclaw</groupId>
-      <artifactId>openclaw-auto-reply</artifactId>
+      <artifactId>openclaw-hooks-runtime</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-agents-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

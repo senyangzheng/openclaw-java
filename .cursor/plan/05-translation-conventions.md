@@ -319,3 +319,9 @@ M3 起，`openclaw-agents-*` 范围内的实现必须满足以下**硬不变量*
     - `run_agent_end`：attempt 退出时调用，上报 `success/error/duration`。
 5. **禁止"执行后 before 检查"**：不要把 before 检查放到 execute 之后；注入点位置一旦错位等同失效。
 6. **冲突注册产出 diagnostics**：不做静默覆盖；被拒绝的注册必须进 `PluginRegistry.diagnostics`。
+7. **`HookOutcome` 三态语义**（适用于所有 modifying hook）：
+    - `modify`：`{params/contextPrepend/...}` 字段非空 → 修改通过 merge 合并，继续执行后续 hook，最终走主链路
+    - `block`：`{block: true, blockReason: "..."}` → 立即抛 `HookBlockedException`，**不执行**后续 hook 与主链路
+    - `shortCircuit`：`{shortCircuit: true, reply: "..."}` → 立即终止 hook 链 + **跳过主链路（包括 LLM 调用）**，由调用方直接返回 `reply`；用于"用户命令短路"场景
+    - 三态优先级：`block > shortCircuit > modify`；同一返回值不应同时设置 `block` 和 `shortCircuit`，若设置则按优先级取
+8. **`/<command>` 用户命令统一表达为 `before_agent_start` shortCircuit hook**：M2.4 引入的独立 `ChatCommand` SPI 在 M3 起**移除**；插件想注册 `/hello` 类命令一律通过 `PluginContext.registerHook("before_agent_start", priority=500, handler -> HookOutcome.shortCircuit("..."))`，外部用户行为不变。

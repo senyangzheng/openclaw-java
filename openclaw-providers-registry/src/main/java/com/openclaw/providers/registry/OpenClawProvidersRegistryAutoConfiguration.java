@@ -1,89 +1,82 @@
 package com.openclaw.providers.registry;
 
-import com.openclaw.autoreply.OpenClawAutoReplyAutoConfiguration;
-import com.openclaw.providers.api.CooldownPolicy;
-import com.openclaw.providers.api.ProviderClient;
-import com.openclaw.secrets.vault.AuthProfileVault;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-
 import java.time.Clock;
 import java.util.List;
 
+import com.openclaw.providers.api.CooldownPolicy;
+import com.openclaw.providers.api.ProviderClient;
+import com.openclaw.providers.api.mock.EchoMockProviderClient;
+import com.openclaw.secrets.vault.AuthProfileVault;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+
 /**
- * Wires the multi-provider registry behind an {@code @Primary}
- * {@link CompositeProviderClient}. Runs after the individual provider autoconfigs
- * (by class name — no compile dep on them) and before
- * {@link OpenClawAutoReplyAutoConfiguration} so the pipeline sees the composite.
+ * Wires the multi-provider registry and the {@link ProviderDispatcher} facade in front of it. Runs after
+ * the individual provider autoconfigs (referenced by class name — no compile-time dep on them) and before
+ * {@code OpenClawAutoReplyAutoConfiguration} so the pipeline sees the dispatcher.
  *
- * <p>No-op when there are zero {@link ProviderClient} beans — the pipeline still
- * falls back to {@link com.openclaw.providers.api.mock.EchoMockProviderClient}.
+ * <h2>Mock fallback</h2>
+ * When no real {@link ProviderClient} beans are present, the registry is still bootstrapped with an
+ * {@link EchoMockProviderClient} as its only candidate so downstream code (AutoReplyPipeline,
+ * AttemptExecutor) always has a dispatcher available. This replaces the old auto-reply-side
+ * {@code @ConditionalOnMissingBean(ProviderClient.class)} fallback — the mock now lives next to the
+ * dispatcher, not next to the pipeline.
+ *
+ * <h2>M3 / A4 note</h2>
+ * Before this milestone we registered a {@code @Primary CompositeProviderClient} that implemented
+ * {@code ProviderClient}. That bean was removed because wrapping a multi-supplier router in the
+ * single-supplier SPI caused the registry autoconfig to filter itself out of its own member list and forced
+ * upstream code to pretend the dispatcher was a plain provider. Callers now depend on
+ * {@link ProviderDispatcher} directly.
  */
-@AutoConfiguration(before = OpenClawAutoReplyAutoConfiguration.class)
+@AutoConfiguration(beforeName = "com.openclaw.autoreply.OpenClawAutoReplyAutoConfiguration")
 @AutoConfigureAfter(name = {
-    "com.openclaw.providers.qwen.OpenClawProvidersQwenAutoConfiguration",
-    "com.openclaw.providers.google.OpenClawProvidersGoogleAutoConfiguration"
+        "com.openclaw.providers.qwen.OpenClawProvidersQwenAutoConfiguration",
+        "com.openclaw.providers.google.OpenClawProvidersGoogleAutoConfiguration"
 })
-@ConditionalOnBean(ProviderClient.class)
 @EnableConfigurationProperties(ProviderRegistryProperties.class)
 public class OpenClawProvidersRegistryAutoConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(OpenClawProvidersRegistryAutoConfiguration.class);
 
-    /**
-     * Collects concrete {@link ProviderClient} beans while explicitly filtering out
-     * {@link CompositeProviderClient} — the composite is itself a {@code ProviderClient}
-     * and would otherwise be pulled into the registry's own member list, creating a
-     * self-referential chain. Pairing this filter with the lazy {@code ObjectProvider}
-     * lookup inside {@link CompositeProviderClient} lets both beans coexist without
-     * relying on {@code spring.main.allow-circular-references}.
-     */
     @Bean
     @ConditionalOnMissingBean(ProviderRegistry.class)
-    public ProviderRegistry providerRegistry(final List<ProviderClient> providerClients,
-                                              final ProviderRegistryProperties properties,
-                                              final ObjectProvider<AuthProfileVault> vaultProvider) {
-        final List<ProviderClient> realProviders = providerClients.stream()
-            .filter(p -> !(p instanceof CompositeProviderClient))
-            .toList();
+    public ProviderRegistry providerRegistry(final ObjectProvider<ProviderClient> providerClients,
+                                             final ProviderRegistryProperties properties,
+                                             final ObjectProvider<AuthProfileVault> vaultProvider) {
+        List<ProviderClient> real = providerClients.orderedStream().toList();
+        final boolean usingMockFallback = real.isEmpty();
+        if (usingMockFallback) {
+            log.warn("providers.registry.fallback using EchoMockProviderClient "
+                    + "— no real ProviderClient bean registered. Set openclaw.providers.qwen.enabled=true "
+                    + "+ DASHSCOPE_API_KEY to use Qwen, or openclaw.providers.google.enabled=true "
+                    + "+ GOOGLE_API_KEY for Gemini.");
+            real = List.of(new EchoMockProviderClient());
+        }
         final CooldownPolicy policy = new CooldownPolicy(
-            properties.getCooldown().getInitialDelay(),
-            properties.getCooldown().getMaxDelay(),
-            properties.getCooldown().getMultiplier());
-        // Vault is optional — when absent (e.g. no openclaw-secrets wired) the
-        // registry's authProfile(..) lookups return empty and consumers fall
-        // back to their @ConfigurationProperties api-key.
+                properties.getCooldown().getInitialDelay(),
+                properties.getCooldown().getMaxDelay(),
+                properties.getCooldown().getMultiplier());
         final AuthProfileVault vault = vaultProvider.getIfAvailable();
-        log.info("providers.registry.bootstrapping providers={} preferredOrder={} vault={}",
-            realProviders.stream().map(ProviderClient::providerId).toList(),
-            properties.getOrder(),
-            vault != null ? vault.source() : "none");
-        return new DefaultProviderRegistry(realProviders, properties.getOrder(), policy,
-            Clock.systemUTC(), vault);
+        log.info("providers.registry.bootstrapping providers={} preferredOrder={} vault={} mockFallback={}",
+                real.stream().map(ProviderClient::providerId).toList(),
+                properties.getOrder(),
+                vault != null ? vault.source() : "none",
+                usingMockFallback);
+        return new DefaultProviderRegistry(real, properties.getOrder(), policy,
+                Clock.systemUTC(), vault);
     }
 
-    /**
-     * Registered as {@link Primary} so consumers autowiring {@code ProviderClient} by
-     * type pick up this composite rather than any concrete provider bean.
-     *
-     * <p>Takes {@link ObjectProvider} instead of a direct {@link ProviderRegistry}:
-     * registry creation depends on {@code List<ProviderClient>} which — without the
-     * filter above — would include the composite, i.e. create a cycle. By resolving
-     * the registry lazily we let Spring finish wiring both beans first, then the
-     * lookup at call time always hits a fully-initialised instance.
-     */
     @Bean
-    @Primary
-    @ConditionalOnMissingBean(CompositeProviderClient.class)
-    public ProviderClient registryProviderClient(final ObjectProvider<ProviderRegistry> registryProvider) {
-        return new CompositeProviderClient(registryProvider::getObject);
+    @ConditionalOnMissingBean(ProviderDispatcher.class)
+    public ProviderDispatcher providerDispatcher(final ProviderRegistry registry) {
+        return new FailoverProviderDispatcher(registry);
     }
 }

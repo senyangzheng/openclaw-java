@@ -13,9 +13,9 @@
   <artifactId>openclaw-providers-registry</artifactId>
   <name>openclaw-providers-registry</name>
   <description>
-    Provider selection + cooldown + fallback. Wraps all ProviderClient beans
-    behind a @Primary CompositeProviderClient so consumers (AutoReplyPipeline)
-    stay unaware of multi-provider routing.
+    Provider selection + cooldown + fallback. Exposes a ProviderDispatcher facade that upstream pipelines
+    (auto-reply, agents-core) depend on directly. Provider SDKs (qwen, google, ...) implement the narrow
+    ProviderClient SPI; the registry does NOT wrap them back into a @Primary ProviderClient — see M3/A4.
   </description>
 
   <dependencies>
@@ -42,14 +42,10 @@
       <artifactId>openclaw-secrets</artifactId>
     </dependency>
     <!--
-      Referenced in @AutoConfigureBefore — declared as a compile dep so the class
-      reference resolves. Does not pull auto-reply into the classpath of anything
-      that doesn't otherwise need it (registry itself is opt-in).
+      No compile-time dep on openclaw-auto-reply: the autoconfig ordering is done via
+      @AutoConfiguration(beforeName="...") string reference. This keeps the dependency arrow
+      auto-reply -> providers-registry (upstream consumers depend on the dispatcher, not vice versa).
     -->
-    <dependency>
-      <groupId>com.openclaw</groupId>
-      <artifactId>openclaw-auto-reply</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>

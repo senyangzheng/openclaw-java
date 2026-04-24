@@ -1,12 +1,19 @@
 package com.openclaw.commands;
 
+import com.openclaw.agents.core.ActiveRunRegistry;
+import com.openclaw.agents.core.AttemptExecutor;
+import com.openclaw.agents.core.PiAgentRunner;
 import com.openclaw.autoreply.AutoReplyPipeline;
 import com.openclaw.channels.core.ChannelAdapter;
 import com.openclaw.channels.core.ChannelRegistry;
 import com.openclaw.channels.core.OutboundMessage;
 import com.openclaw.common.error.OpenClawException;
+import com.openclaw.hooks.HookRunner;
+import com.openclaw.lanes.SessionLaneCoordinator;
 import com.openclaw.providers.api.mock.EchoMockProviderClient;
+import com.openclaw.providers.registry.ProviderDispatcher;
 import com.openclaw.sessions.InMemorySessionRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -15,6 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ChatCommandServiceTest {
+
+    private final SessionLaneCoordinator lanes = new SessionLaneCoordinator();
+
+    @AfterEach
+    void tearDown() {
+        lanes.close();
+    }
 
     @Test
     void shouldRouteChatThroughPipeline() {
@@ -36,10 +50,11 @@ class ChatCommandServiceTest {
         ).isInstanceOf(OpenClawException.class);
     }
 
-    private static ChatCommandService newService() {
-        final AutoReplyPipeline pipeline = new AutoReplyPipeline(
-            new InMemorySessionRepository(), new EchoMockProviderClient()
-        );
+    private ChatCommandService newService() {
+        final AttemptExecutor attempt = new AttemptExecutor(
+            ProviderDispatcher.direct(new EchoMockProviderClient()), new HookRunner());
+        final PiAgentRunner runner = new PiAgentRunner(lanes, new ActiveRunRegistry(), attempt);
+        final AutoReplyPipeline pipeline = new AutoReplyPipeline(new InMemorySessionRepository(), runner);
         final ChannelRegistry registry = new ChannelRegistry(List.of(new ChannelAdapter() {
             @Override
             public String channelId() {

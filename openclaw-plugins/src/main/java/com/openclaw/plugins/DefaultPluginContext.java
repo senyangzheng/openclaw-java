@@ -1,6 +1,8 @@
 package com.openclaw.plugins;
 
+import com.openclaw.plugin.CapabilityType;
 import com.openclaw.plugin.PluginContext;
+import com.openclaw.plugin.PluginSource;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
@@ -17,20 +19,35 @@ import java.util.function.Supplier;
  * only be called from {@link com.openclaw.plugin.OpenClawPlugin#onLoad} —
  * after the host context has finished refresh. Registering after the context
  * is closed throws {@link IllegalStateException}.
+ *
+ * <p><b>Capability routing (M3)</b>: {@link #registerCapability(CapabilityType, String, Object)} delegates
+ * to the shared {@link CapabilityRegistry}, which enforces per-type conflict policy and records diagnostics.
  */
 final class DefaultPluginContext implements PluginContext {
 
     private final String pluginId;
+    private final PluginSource source;
     private final ConfigurableApplicationContext applicationContext;
+    private final CapabilityRegistry capabilityRegistry;
 
-    DefaultPluginContext(final String pluginId, final ConfigurableApplicationContext applicationContext) {
+    DefaultPluginContext(final String pluginId,
+                         final PluginSource source,
+                         final ConfigurableApplicationContext applicationContext,
+                         final CapabilityRegistry capabilityRegistry) {
         this.pluginId = Objects.requireNonNull(pluginId, "pluginId");
+        this.source = source == null ? PluginSource.BUNDLED : source;
         this.applicationContext = Objects.requireNonNull(applicationContext, "applicationContext");
+        this.capabilityRegistry = Objects.requireNonNull(capabilityRegistry, "capabilityRegistry");
     }
 
     @Override
     public String pluginId() {
         return pluginId;
+    }
+
+    @Override
+    public PluginSource source() {
+        return source;
     }
 
     @Override
@@ -51,6 +68,11 @@ final class DefaultPluginContext implements PluginContext {
         final T instance = factory.get();
         beanFactory().registerSingleton(qualified, instance);
         return (T) beanFactory().getSingleton(qualified);
+    }
+
+    @Override
+    public <T> T registerCapability(final CapabilityType type, final String name, final T handler) {
+        return capabilityRegistry.register(type, name, pluginId, handler);
     }
 
     @Override

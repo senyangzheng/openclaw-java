@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Collection of {@link ProviderClient}s with health / cooldown tracking. The
- * registry is the single source of truth for multi-provider routing — downstream
- * consumers (pipelines, tools) interact with it through either
- * {@link #select()} or the {@code @Primary} {@link CompositeProviderClient}
- * bean that wraps it.
+ * Collection of {@link ProviderClient}s with health / cooldown tracking. The registry is the single source
+ * of truth for multi-provider routing; downstream consumers (pipelines, tools) must depend on
+ * {@link ProviderDispatcher} rather than wiring a raw {@code @Primary} {@code ProviderClient} on top of the
+ * registry (see M3 / A4 — the legacy {@code CompositeProviderClient} bean was removed because wrapping the
+ * dispatcher in a {@code ProviderClient} conflated "a single supplier" with "a multi-supplier router").
  */
 public interface ProviderRegistry {
 

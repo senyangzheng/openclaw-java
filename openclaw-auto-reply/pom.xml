@@ -13,8 +13,9 @@
   <artifactId>openclaw-auto-reply</artifactId>
   <name>openclaw-auto-reply</name>
   <description>
-    Minimal auto-reply pipeline used in M1: Inbound → Session → ProviderClient → Outbound.
-    Replaced by the full Agent runtime in M3 (AgentAttemptExecutor + ToolRegistry + SessionLanes).
+    Channel-edge thin orchestrator (M3/A1 final state): inbound → session append(user) → PiAgentRunner.submit
+    → session append(assistant) → outbound. All agent logic (hook / provider / lane / failover / active-run
+    registry) lives behind the PiAgentRunner boundary in openclaw-agents-core.
   </description>
 
   <dependencies>
@@ -33,6 +34,10 @@
     <dependency>
       <groupId>com.openclaw</groupId>
       <artifactId>openclaw-channels-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.openclaw</groupId>
+      <artifactId>openclaw-agents-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

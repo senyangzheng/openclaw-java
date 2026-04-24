@@ -8,6 +8,7 @@ import com.openclaw.sessions.SessionKey;
 import com.openclaw.sessions.SessionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -120,6 +121,18 @@ public class JdbcSessionRepository implements SessionRepository {
         return Optional.ofNullable(entity);
     }
 
+    /**
+     * Race-safe insert. Two concurrent {@code loadOrCreate} calls for the same {@link SessionKey} both
+     * see "no row yet", both attempt the insert — one succeeds, the other violates the
+     * {@code uk_session_key} unique constraint. That second thread catches
+     * {@link DataIntegrityViolationException} and re-selects the now-present row. The alternative
+     * (pessimistic SELECT ... FOR UPDATE) would serialize every session-load DB hop and defeats
+     * session-lane's purpose of scaling cross-session traffic.
+     *
+     * <p>Note: session-lane currently only serializes <em>agent execution</em>, not
+     * {@code loadOrCreate/save}. A broader refactor (session I/O inside the lane) is tracked for
+     * post-M3; until then, duplicate-key is the correct graceful-degradation point.
+     */
     private SessionEntity insertEntity(final SessionKey key) {
         final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         final SessionEntity entity = new SessionEntity();
@@ -129,9 +142,27 @@ public class JdbcSessionRepository implements SessionRepository {
         entity.setConversationId(key.conversationId());
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
-        sessionMapper.insert(entity);
+        try {
+            sessionMapper.insert(entity);
+        } catch (DataIntegrityViolationException dup) {
+            log.debug("session.insert.duplicate key={} — re-selecting after concurrent create",
+                key.asString());
+            keyToIdCache.invalidate(key.asString());
+            return selectFresh(key).orElseThrow(() -> new IllegalStateException(
+                "session vanished after duplicate key: " + key.asString(), dup));
+        }
         keyToIdCache.put(key.asString(), entity.getId());
         return entity;
+    }
+
+    private Optional<SessionEntity> selectFresh(final SessionKey key) {
+        final LambdaQueryWrapper<SessionEntity> q = new LambdaQueryWrapper<SessionEntity>()
+            .eq(SessionEntity::getSessionKey, key.asString());
+        final SessionEntity entity = sessionMapper.selectOne(q);
+        if (entity != null) {
+            keyToIdCache.put(key.asString(), entity.getId());
+        }
+        return Optional.ofNullable(entity);
     }
 
     private Session createAndHydrate(final SessionKey key) {

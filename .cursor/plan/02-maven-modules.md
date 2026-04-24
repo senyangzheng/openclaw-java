@@ -141,7 +141,7 @@ providers-api
 | `openclaw-providers-api` | `common` |
 | `openclaw-providers-google` | `providers-api` + `spring-boot-starter-webflux`（Gemini 流式 SSE） |
 | `openclaw-providers-qwen` | `providers-api` + `spring-boot-starter-webflux` |
-| `openclaw-providers-registry` | `providers-api` + `config` + `sessions`（cooldown / lastUsed 持久化） |
+| `openclaw-providers-registry` | `providers-api` + `config` + `sessions`（仅 `lookup / markFailure / markSuccess / isAvailable / cooldownInitial / cooldownMax`；M3 起 **`RegistryProviderClient` 移除**，由 `agents-fallback.ModelFallbackRunner` 接管编排） |
 
 ### 3.3 Agent / 运行时层
 
@@ -156,7 +156,7 @@ providers-api
 | `openclaw-agents-core` | `hooks-runtime` + `tools` + `skills` + `context-engine` + `memory` + `session-lanes` + `stream` + `approval` + `providers-registry` | PiAgentRunner 只调度 / AttemptExecutor 单事务 / SubscribeState / ActiveRunRegistry |
 | `openclaw-agents-fallback` | `agents-core` + `providers-registry` | FailoverError + 分类器 + resolveFallbackCandidates + runWithModelFallback + AuthProfileRotator |
 | `openclaw-agents-subagent` | `agents-core` + `session-lanes` + `sessions` + `gateway-api` | SessionsSpawnTool / SessionsSendTool / SubagentRegistry / SubagentAnnounceFlow；防递归 + allowAgents + nested lane |
-| `openclaw-auto-reply` | `agents-core` + `agents-fallback` + `channels-core` | 入口 pipeline；内部走 PiAgentRunner |
+| `openclaw-auto-reply` | `agents-core` + `agents-fallback` + `channels-core` | 入口 pipeline；内部走 PiAgentRunner；M3 起 **`ChatCommand` SPI 与 `ChatCommandDispatcher` 移除**，`/<command>` 用户命令统一改走 `before_agent_start` shortCircuit hook |
 | `openclaw-approval` | `common` + `hooks-runtime` + `sessions` | ExecApprovalManager（timeout=null + 15s grace + 幂等 register）+ ExecApprovalPolicy |
 
 ### 3.4 Gateway 层

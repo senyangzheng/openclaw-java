@@ -90,6 +90,14 @@
     <module>openclaw-plugin-sdk</module>
     <module>openclaw-plugins</module>
 
+    <!-- M3 foundation modules -->
+    <module>openclaw-session-lanes</module>
+    <module>openclaw-hooks-runtime</module>
+    <module>openclaw-stream</module>
+    <module>openclaw-agents-core</module>
+    <module>openclaw-tools-api</module>
+    <module>openclaw-tools-runtime</module>
+
     <!-- bootstrap is always last -->
     <module>openclaw-bootstrap</module>
   </modules>
@@ -208,6 +216,36 @@
       <dependency>
         <groupId>com.openclaw</groupId>
         <artifactId>openclaw-plugins</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-session-lanes</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-hooks-runtime</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-stream</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-agents-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-tools-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.openclaw</groupId>
+        <artifactId>openclaw-tools-runtime</artifactId>
         <version>${project.version}</version>
       </dependency>
 

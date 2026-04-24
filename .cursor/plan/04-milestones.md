@@ -253,6 +253,7 @@ idle
     - 超时返回 `{drained: false}`，**不 reject**
 - [ ] `openclaw-session-lanes`：虚拟线程 worker（`Thread.ofVirtual().factory()` + `Executors.newThreadPerTaskExecutor`）；配置 `max-queue` 可选上限，满时拒绝并返回显式错误
 - [ ] `openclaw-agents-core`：`PiAgentRunner.run` 调用 `enqueueInSessionLane(...)` → `enqueueInGlobalLane(...)`；形成 `sessionLane → globalLane → attempt` 三层调用栈
+- [ ] **session I/O 搬入 lane**：`AutoReplyPipeline` 把 `sessions.loadOrCreate → append(user) → submit → append(assistant) → sessions.save` 整个闭包作为 task 交给 `SessionLaneCoordinator.enqueueInSessionLane`，消除当前同 session 并发 下 "`loadOrCreate` 唯一键竞争 + `save` 丢消息" 的两类遗留竞态（A1 只在 `JdbcSessionRepository.insertEntity` 做了 `DuplicateKeyException` 软兜底，不是根治方案）。配套单测：10 线程并发同 sessionKey → DB 只增长一份完整消息序列，不丢失、不冲突
 - [ ] 单测：
     - `LaneDispatcherTest`（同会话串行 / 跨会话并行 / `maxConcurrent` 改值实时生效 / `draining` 防重入 / 失败也 pump）× 7
     - `LaneNamesTest`（`session:` 幂等前缀 / 空 key 回落 MAIN / `resolveGlobalLane` 空值默认）× 4
@@ -389,6 +390,10 @@ idle
     - 内置 hook 点：`before_agent_start` / `before_tool_call` / `after_tool_call` / `run_agent_end`
     - `before_agent_start` 合并规则：`systemPrompt` 后者覆盖、`prependContext` 按顺序拼接
     - `before_tool_call` 合并规则：`{params: next.params ?? acc.params, block: next.block ?? acc.block, blockReason: next.blockReason ?? acc.blockReason}`
+    - **`HookOutcome` 三态**：`modify`（merge 后继续）/ `block`（抛 `HookBlockedException`，不执行后续 hook 与主链路）/ `shortCircuit`（终止 hook 链 + 跳过主链路，由调用方直接返回 `reply`）；优先级 `block > shortCircuit > modify`
+- [ ] **冗余删除（M3 起执行）**：
+    - 删除 `openclaw-auto-reply` 中的 `ChatCommand` SPI 与 `ChatCommandDispatcher`；M2.4 的 `HelloChatCommand` 迁为 `HelloBeforeAgentStartHook`（注册 `before_agent_start` priority=500，匹配 `/hello` 前缀返回 `HookOutcome.shortCircuit("Hi from HelloPlugin!")`）；外部行为完全不变
+    - 删除 `openclaw-providers-registry` 中的 `RegistryProviderClient`；`ProviderRegistry` 保留 `lookup / markFailure / markSuccess / isAvailable / cooldown 配置`，由 `ModelFallbackRunner`（M3.4）调用；`AutoReplyPipeline → ProviderClient` 的依赖路径改为经 `ModelFallbackRunner`（顺带消除 M2.2 的循环依赖隐患）
 - [ ] `openclaw-plugins` 扩展：`PluginContext` 新增具名能力 API（冲突硬拒绝 + 集中 diagnostics）：`registerHook` / `registerTool` / `registerGatewayMethod` / `registerHttpRoute` / `registerCommand`；`PluginRegistry.diagnostics` 集中输出 loader 错误 / manifest 冲突 / 注册冲突 / 配置 schema 错误
 - [ ] 单测：
     - `SkillsWatcherTest`（debounce / version bump）× 3

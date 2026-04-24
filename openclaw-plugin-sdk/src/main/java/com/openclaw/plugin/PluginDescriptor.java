@@ -12,6 +12,7 @@ import java.time.Instant;
  * @param order       {@link OpenClawPlugin#order()}
  * @param className   FQN of the implementation class — useful for diagnostics
  *                    (which jar supplied this plugin)
+ * @param source      where this plugin was discovered from (see {@link PluginSource})
  * @param loadedAt    Wall-clock moment at which {@link OpenClawPlugin#onLoad} completed
  */
 public record PluginDescriptor(
@@ -20,6 +21,11 @@ public record PluginDescriptor(
     String description,
     int order,
     String className,
+    PluginSource source,
     Instant loadedAt
 ) {
+
+    public PluginDescriptor {
+        source = source == null ? PluginSource.BUNDLED : source;
+    }
 }

@@ -1,12 +1,18 @@
 package com.openclaw.gateway.core;
 
+import com.openclaw.agents.core.ActiveRunRegistry;
+import com.openclaw.agents.core.AttemptExecutor;
+import com.openclaw.agents.core.PiAgentRunner;
 import com.openclaw.autoreply.AutoReplyPipeline;
 import com.openclaw.gateway.api.GatewayRequest;
 import com.openclaw.gateway.api.GatewayResponse;
 import com.openclaw.gateway.api.Methods;
 import com.openclaw.gateway.core.methods.ChatSendMethodHandler;
 import com.openclaw.gateway.core.methods.PingMethodHandler;
+import com.openclaw.hooks.HookRunner;
+import com.openclaw.lanes.SessionLaneCoordinator;
 import com.openclaw.providers.api.mock.EchoMockProviderClient;
+import com.openclaw.providers.registry.ProviderDispatcher;
 import com.openclaw.sessions.InMemorySessionRepository;
 import org.junit.jupiter.api.Test;
 
@@ -61,18 +67,24 @@ class MethodDispatcherTest {
 
     @Test
     void shouldDispatchChatSendThroughPipeline() {
-        final AutoReplyPipeline pipeline = new AutoReplyPipeline(
-            new InMemorySessionRepository(), new EchoMockProviderClient()
-        );
-        final MethodDispatcher dispatcher = new MethodDispatcher(
-            List.of(new ChatSendMethodHandler(pipeline)), new MockAuthGuard(null)
-        );
+        final SessionLaneCoordinator lanes = new SessionLaneCoordinator();
+        try {
+            final AttemptExecutor attempt = new AttemptExecutor(
+                ProviderDispatcher.direct(new EchoMockProviderClient()), new HookRunner());
+            final PiAgentRunner runner = new PiAgentRunner(lanes, new ActiveRunRegistry(), attempt);
+            final AutoReplyPipeline pipeline = new AutoReplyPipeline(new InMemorySessionRepository(), runner);
+            final MethodDispatcher dispatcher = new MethodDispatcher(
+                List.of(new ChatSendMethodHandler(pipeline)), new MockAuthGuard(null)
+            );
 
-        final GatewayResponse resp = dispatcher.dispatch(
-            new GatewayRequest("r-4", Methods.CHAT_SEND, null, Map.of("text", "hi"))
-        );
+            final GatewayResponse resp = dispatcher.dispatch(
+                new GatewayRequest("r-4", Methods.CHAT_SEND, null, Map.of("text", "hi"))
+            );
 
-        assertThat(resp.isSuccess()).isTrue();
-        assertThat(resp.result()).containsEntry("text", "[mock] hi");
+            assertThat(resp.isSuccess()).isTrue();
+            assertThat(resp.result()).containsEntry("text", "[mock] hi");
+        } finally {
+            lanes.close();
+        }
     }
 }
